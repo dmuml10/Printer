@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
+
 public class Printer {
 
 	private final String devicePath = "/dev/usb/lp0";
@@ -35,9 +37,15 @@ public class Printer {
 		out.write(new byte[] { 0x1B, 0x6D });
 	}
 
-	public void loadUserFont(byte[] fontData) throws IOException {
+	public void loadCustomFont(byte[] fontData) throws IOException {
 		out.write(new byte[] { 0x1D, 0x26, 0x00 });
 		out.write(fontData);
 	}
-	
+
+	public void loadCustomFont(String fontFilePath) throws IOException {
+		byte[] fontData = FileUtils.readFileToByteArray(new File(fontFilePath));
+		out.write(new byte[] { 0x1D, 0x26, 0x00 });
+		out.write(fontData);
+	}
+
 }
