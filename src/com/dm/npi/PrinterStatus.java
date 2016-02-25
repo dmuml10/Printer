@@ -2,6 +2,8 @@ package com.dm.npi;
 
 public enum PrinterStatus {
 	
+	// Printer Errors
+	
 	COVER_OPEN(0b00000010),
 	
 	PAPER_OUT(0b00000100),
@@ -14,7 +16,15 @@ public enum PrinterStatus {
 	
 	PAPER_MISSING(0b00100000),
 	
-	JAM(0b00011000);
+	JAM(0b00011000),
+	
+	// Printer Warnings
+	
+	PAPER_LOW(0b00000001),
+	
+	PRESENTER_FULL(0b01000000),
+	
+	PRINTER_BUSY(0b10000000);
 	
 	private PrinterStatus(int status) {
 		this.status = status;
