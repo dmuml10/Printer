@@ -1,15 +1,13 @@
 package com.dm.npi;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.RandomAccessFile;
 
 import javax.imageio.ImageIO;
 
@@ -19,92 +17,121 @@ public class Printer {
 
 	private final String devicePath = "/dev/usb/lp0";
 
-	private BufferedOutputStream out;
+	private RandomAccessFile file;
+	
+	private byte status;
+	
+	private boolean coverOpen;
+	
+	private boolean paperOut;
+	
+	private boolean presenterJam;
+	
+	private boolean headOverheat;
+	
+	private boolean cutterJam;
+	
+	private boolean paperMissing;
+	
+	public boolean isCoverOpen() {
+		return coverOpen;
+	}
 
-	private BufferedInputStream in;
+	public boolean isPaperOut() {
+		return paperOut;
+	}
+
+	public boolean isPresenterJam() {
+		return presenterJam;
+	}
+
+	public boolean isHeadOverheat() {
+		return headOverheat;
+	}
+
+	public boolean isCutterJam() {
+		return cutterJam;
+	}
+
+	public boolean isPaperMissing() {
+		return paperMissing;
+	}
 
 	public Printer() throws FileNotFoundException {
-		initDataReadCommunication();
-		initDataWriteCommunication();
+		initCommunication();
 	}
 
-	private void initDataWriteCommunication() throws FileNotFoundException {
-		FileOutputStream fos = new FileOutputStream(devicePath);
-		out = new BufferedOutputStream(fos);
+	private void initCommunication() throws FileNotFoundException {
+		file = new RandomAccessFile(devicePath, "rw");
 	}
-
-	private void initDataReadCommunication() throws FileNotFoundException {
-		FileInputStream fis = new FileInputStream(devicePath);
-		in = new BufferedInputStream(fis);
+	
+	public void readStatus() throws IOException {
+		file.write(new byte[] {0x1B, 0x73, 0x01});
+		status = file.readByte();
 	}
 
 	public void cutPaper() throws IOException {
-		out.write(new byte[] { 0x1B, 0x6D });
+		file.write(new byte[] { 0x1B, 0x6D });
 	}
 
 	public void loadCustomFont(byte[] fontData) throws IOException {
-		out.write(new byte[] { 0x1D, 0x26, 0x00 });
-		out.write(fontData);
+		file.write(new byte[] { 0x1D, 0x26, 0x00 });
 	}
 
 	public void loadCustomFont(String fontFilePath) throws IOException {
 		byte[] fontData = FileUtils.readFileToByteArray(new File(fontFilePath));
-		out.write(new byte[] { 0x1D, 0x26, 0x00 });
-		out.write(fontData);
+		file.write(new byte[] { 0x1D, 0x26, 0x00 });
+		file.write(fontData);
 	}
 
 	public void printBitmap(String bitmapFilePath, int width, int height) throws IOException {
 		byte[] bitmapData = FileUtils.readFileToByteArray(new File(bitmapFilePath));
-		byte[] array = new byte[width*height/8];
-		for (int i=0; i<width*height/8; i++) {
-			int x = 146;
-			array[i] = bitmapData[i+x];
-		}
-		out.write(new byte[] { 0x1B, 0x62, (byte)(width/8) , (byte)(height%256), (byte)(height/256)});
-		out.write(array);
-		System.out.println("## " + bitmapData.length);
-		out.flush();
+		file.write(new byte[] { 0x1B, 0x62, (byte)(width/8) , (byte)(height%256), (byte)(height/256)});
+		file.write(bitmapData);
 	}
 	
 	public void printImage(String image, int width, int height) throws IOException {
-		BufferedImage originalImage = ImageIO.read(new File("test2.bmp"));
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(originalImage, "bmp", baos);
-		out.write(new byte[] { 0x1B, 0x62, (byte)(width/8) , (byte)(height%256), (byte)(height/256)});
-		out.write(baos.toByteArray());
+		BufferedImage originalImage = ImageIO.read(new File("github-128.bmp"));
 		width = originalImage.getWidth();
 		height = originalImage.getHeight();
-		System.out.println(ImageIO.getWriterFormatNames());
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(originalImage, "BMP", baos);
+		BufferedOutputStream o = new BufferedOutputStream(new FileOutputStream(new File("x.bmp")));
+		o.write(baos.toByteArray());
+		o.flush();
+		o.close();
+		file.write(new byte[] { 0x1B, 0x62, (byte)(width/8), (byte)(height%256), (byte)(height/256)});
+		System.out.println((byte)(width/8) + " " + (byte)(height%256) +" "+ (byte)(height/256));
+		System.out.println(baos.toByteArray().length);
+		file.write(baos.toByteArray());
 		baos.close();
 	}
 
 	public void printNewLine() throws IOException {
-		out.write(new byte[] { 0xA });
-		out.flush();
+		file.write(new byte[] { 0xA });
 	}
 	
 	public void printText(String text) throws IOException {
-		out.write(text.getBytes(Charset.forName("UTF-8")));
-		out.flush();
+		file.write(convertText(text));
 	}
 	
 	//[00 <= n <= 24]hex
 	public void backFeed(byte n) throws IOException {
-		out.write(new byte[] {0x1B, 0x42, n});
-		out.flush();
+		file.write(new byte[] {0x1B, 0x42, n});
 	}
 	
-	public void printLine(int n) {
-		byte[] array = new byte[n*54];
-		for (int i=0; i<array.length; i++) {
-			array[i] = (byte)0xFF;
+	public void printLine(int n) throws IOException {
+		byte[] array = new byte[n * 54];
+		for (int i = 0; i < array.length; i++) {
+			array[i] = (byte) 0xFF;
 		}
+		file.write(array);
 	}
 	
 	public byte[] convertText(String text) {
 		byte[] array = new byte[text.length()];
-		for (int i=0; i<array.length ;i++) {
-			array[i] = (byte)convert(text.charAt(i));
+		for (int i = 0; i < array.length; i++) {
+			array[i] = (byte) convert(text.charAt(i));
 		}
 		return array;
 	}
@@ -129,12 +156,19 @@ public class Printer {
 	        case 'რ': return  0x90;case 'ს': return  0x91;case 'ტ': return  0x92;case 'უ': return  0x93;case 'ფ': return  0x94;case 'ქ': return  0x95;case 'ღ': return  0x96;case 'ყ': return  0x97;case 'შ': return  0x98;
 	        case 'ჩ': return  0x99;case 'ც': return  0x9A;case 'ძ': return  0x9B;case 'წ': return  0x9C;case 'ჭ': return  0x9D;case 'ხ': return  0x9E;case 'ჯ': return  0x9F;
 	        case 'ჰ': return  0xA0;
-			default: return 0;
+			default: return (int)c;
 		}
 	}
-
+	
 	public void selectUserCodePage() throws IOException {
-		out.write(new byte[] {0x1B, 0x74, 0x07});
+		file.write(new byte[] {0x1B, 0x74, 0x07});
 	}
 	
+	public void powerOff() throws IOException {
+		file.write(new byte[] {0x1D, 0x4F});
+	}
+	
+	public void setReleaseUnderline(byte n) throws IOException {
+		file.write(new byte[] {0x1B, 0x2D, n});
+	}
 }
