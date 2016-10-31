@@ -8,14 +8,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
 import org.apache.commons.io.FileUtils;
 
 public class Printer {
-
-	private final String devicePath = "/dev/usb/lp0";
 
 	private RandomAccessFile file;
 	
@@ -57,17 +57,36 @@ public class Printer {
 		return paperMissing;
 	}
 
-	public Printer() throws FileNotFoundException {
-		initCommunication();
+	public Printer(String filePath) throws FileNotFoundException {
+		initCommunication(filePath);
 	}
 
-	private void initCommunication() throws FileNotFoundException {
-		file = new RandomAccessFile(devicePath, "rw");
+	private void initCommunication(String filePath) throws FileNotFoundException {
+		file = new RandomAccessFile(filePath, "rw");
 	}
 	
-	public void readStatus() throws IOException {
+	public List<PrinterStatus> readStatus() throws IOException {
+		List<PrinterStatus> statuses = new ArrayList<PrinterStatus>();
 		file.write(new byte[] {0x1B, 0x73, 0x01});
 		status = file.readByte();
+		if (PrinterStatus.COVER_OPEN.equals(status)) {
+			statuses.add(PrinterStatus.COVER_OPEN);
+		} else if(PrinterStatus.PAPER_OUT.equals(status)) {
+			statuses.add(PrinterStatus.PAPER_OUT);
+		} else if(PrinterStatus.HEAD_OVERHEAT.equals(status)) {
+			statuses.add(PrinterStatus.HEAD_OVERHEAT);
+		} else if(PrinterStatus.CUTTER_JAM.equals(status)) {
+			statuses.add(PrinterStatus.CUTTER_JAM);
+		} else if(PrinterStatus.PAPER_MISSING.equals(status)) {
+			statuses.add(PrinterStatus.PAPER_MISSING);
+		} else if (PrinterStatus.PAPER_LOW.equals(status)) {
+			statuses.add(PrinterStatus.PAPER_LOW);
+		} else if (PrinterStatus.PRINTER_BUSY.equals(status)) {
+			statuses.add(PrinterStatus.PRINTER_BUSY);
+		} else if (PrinterStatus.PRESENTER_FULL.equals(status)) {
+			statuses.add(PrinterStatus.PRINTER_BUSY);
+		}
+		return statuses;
 	}
 
 	public void cutPaper() throws IOException {

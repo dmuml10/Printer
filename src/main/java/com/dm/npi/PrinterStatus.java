@@ -36,4 +36,9 @@ public enum PrinterStatus {
 		return status;
 	}
 
+	public boolean equals(int statusByte) {
+		return status == statusByte;
+	}
+	
+	
 }
