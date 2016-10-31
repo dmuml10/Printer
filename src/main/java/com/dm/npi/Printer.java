@@ -21,42 +21,6 @@ public class Printer {
 	
 	private byte status;
 	
-	private boolean coverOpen;
-	
-	private boolean paperOut;
-	
-	private boolean presenterJam;
-	
-	private boolean headOverheat;
-	
-	private boolean cutterJam;
-	
-	private boolean paperMissing;
-	
-	public boolean isCoverOpen() {
-		return coverOpen;
-	}
-
-	public boolean isPaperOut() {
-		return paperOut;
-	}
-
-	public boolean isPresenterJam() {
-		return presenterJam;
-	}
-
-	public boolean isHeadOverheat() {
-		return headOverheat;
-	}
-
-	public boolean isCutterJam() {
-		return cutterJam;
-	}
-
-	public boolean isPaperMissing() {
-		return paperMissing;
-	}
-
 	public Printer(String filePath) throws FileNotFoundException {
 		initCommunication(filePath);
 	}
@@ -110,18 +74,16 @@ public class Printer {
 	}
 	
 	public void printImage(String image, int width, int height) throws IOException {
-		BufferedImage originalImage = ImageIO.read(new File("github-128.bmp"));
+		BufferedImage originalImage = ImageIO.read(new File(image));
 		width = originalImage.getWidth();
 		height = originalImage.getHeight();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ImageIO.write(originalImage, "BMP", baos);
-		BufferedOutputStream o = new BufferedOutputStream(new FileOutputStream(new File("x.bmp")));
+		BufferedOutputStream o = new BufferedOutputStream(new FileOutputStream(new File(image)));
 		o.write(baos.toByteArray());
 		o.flush();
 		o.close();
 		file.write(new byte[] { 0x1B, 0x62, (byte)(width/8), (byte)(height%256), (byte)(height/256)});
-		System.out.println((byte)(width/8) + " " + (byte)(height%256) +" "+ (byte)(height/256));
-		System.out.println(baos.toByteArray().length);
 		file.write(baos.toByteArray());
 		baos.close();
 	}
@@ -155,6 +117,9 @@ public class Printer {
 		return array;
 	}
 	
+	/*
+	 * Converts to English Georgian Font
+	 */
 	public int convert(char c) {
 		switch (c) {
 			case '\n': return 0xA;
