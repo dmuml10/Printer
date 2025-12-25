@@ -1,7 +1,7 @@
 # NIPPON(NP-T200H) thermal printer Java API
 
-This project is Java library for communicating with Nippon printer.
-The goal of the library is to simplify communication with Nippon printer.
+This project is a Java library for communicating with NIPPON NP-T200H thermal printers.
+Its goal is to provide a simple, reliable API that abstracts low-level printer communication, making integration straightforward for Java applications.
 
 ## Building
 The Nippon printer Java API is built using [Apache Maven](http://maven.apache.org/).
